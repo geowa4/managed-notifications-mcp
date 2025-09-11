@@ -15,6 +15,12 @@ uv run build-embeddings
 # Run MCP server locally
 uv run serve
 
+# Lint code
+uv run ruff check
+
+# Type check code
+uv run mypy .
+
 # Build container
 podman build -t managed-notifications-search .
 
