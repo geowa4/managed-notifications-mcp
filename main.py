@@ -67,6 +67,13 @@ class NotificationSearchServer:
             except (json.JSONDecodeError, KeyError):
                 full_json = {}
             
+            # Parse variables from JSON string back to list
+            variables_str = results['metadatas'][0][i].get('variables', '[]')
+            try:
+                variables = json.loads(variables_str) if variables_str else []
+            except (json.JSONDecodeError, TypeError):
+                variables = []
+            
             result = {
                 "id": results['ids'][0][i],
                 "distance": results['distances'][0][i] if 'distances' in results else 0.0,
@@ -77,6 +84,7 @@ class NotificationSearchServer:
                 "service_name": results['metadatas'][0][i].get('service_name', 'Unknown'),
                 "log_type": results['metadatas'][0][i].get('log_type', 'Unknown'),
                 "internal_only": results['metadatas'][0][i].get('internal_only', False),
+                "variables": variables,
                 "document_text": results['documents'][0][i],
                 "notification": full_json
             }
@@ -106,17 +114,34 @@ def search_service_logs(
     This tool searches through a database of managed service notifications to find
     logs that are semantically similar to the provided problem description.
     
+    IMPORTANT: Many notifications contain variable placeholders (e.g., ${TIME}, ${REASON}, 
+    ${POD}, ${NAMESPACE}) that need to be replaced with actual values. When you find a 
+    relevant notification that contains variables, you should:
+    1. Present the notification to the user
+    2. Ask the user to provide values for each variable listed in the "variables" field
+    3. Help the user interpolate the variables into the notification text
+    4. Print the service log using the exact JSON given using the interpolated values
+    
     Args:
         problem_statement: Description of the issue or problem you're investigating
         max_results: Maximum number of matching notifications to return (default: 5)
     
     Returns:
         List of matching notification documents with metadata including:
-        - notification: Full JSON notification data
+        - notification: Full JSON notification data with variable placeholders
+        - variables: List of variable names that need interpolation (e.g., ["TIME", "REASON"])
         - file_path: Path to the original notification file
         - folder: Category folder (hcp, osd, rosa, etc.)
         - severity: Notification severity level
         - similarity: Similarity score (0-1, higher is more similar)
+        
+    Example variables you might encounter:
+        - ${TIME}: Timestamp when the issue occurred
+        - ${REASON}: Specific reason for the failure
+        - ${POD}: Name of the affected pod
+        - ${NAMESPACE}: Kubernetes namespace
+        - ${CLUSTER_ID}: Cluster identifier
+        - ${NUM_OF_WORKERS}: Number of worker nodes
     """
     try:
         results = search_server.search_notifications(

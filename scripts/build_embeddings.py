@@ -2,8 +2,9 @@
 
 import json
 import os
+import re
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -13,6 +14,17 @@ def load_embedding_model() -> SentenceTransformer:
     """Load the sentence transformer model for creating embeddings."""
     model_name = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
     return SentenceTransformer(model_name)
+
+
+def extract_variables(text: str) -> List[str]:
+    """Extract variable placeholders from text (e.g., ${VARIABLE_NAME})."""
+    if not text:
+        return []
+    
+    # Find all ${VARIABLE_NAME} patterns
+    pattern = r'\$\{([^}]+)\}'
+    variables = re.findall(pattern, text)
+    return sorted(list(set(variables)))  # Remove duplicates and sort
 
 
 def extract_searchable_text(notification_data: Dict[str, Any]) -> str:
@@ -58,6 +70,12 @@ def process_notification_files(notifications_dir: Path) -> tuple[list[str], list
             
             folder_tag = get_folder_metadata(json_file, notifications_dir)
             
+            # Extract variables from all text fields
+            all_variables = set()
+            for field in ["summary", "description"]:
+                if field in notification_data and notification_data[field]:
+                    all_variables.update(extract_variables(str(notification_data[field])))
+            
             documents.append(searchable_text)
             metadatas.append({
                 "file_path": str(json_file.relative_to(notifications_dir)),
@@ -66,6 +84,7 @@ def process_notification_files(notifications_dir: Path) -> tuple[list[str], list
                 "service_name": notification_data.get("service_name", "Unknown"),
                 "log_type": notification_data.get("log_type", "Unknown"),
                 "internal_only": notification_data.get("internal_only", False),
+                "variables": json.dumps(sorted(list(all_variables))),  # Store as JSON string
                 "full_json": json.dumps(notification_data)
             })
             ids.append(f"notification_{idx}")
