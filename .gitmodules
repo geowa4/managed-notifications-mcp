@@ -1,0 +1,3 @@
+[submodule "managed-notifications"]
+	path = managed-notifications
+	url = git@github.com:openshift/managed-notifications.git

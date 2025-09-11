@@ -1,0 +1,65 @@
+# Git and version control
+.git
+.gitignore
+.gitmodules
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+env/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Documentation and development files
+*.md
+docs/
+examples/
+tests/
+.pytest_cache/
+
+# Local development files
+.env
+.env.local
+*.log
+
+# ChromaDB database (will be built in container)
+chroma_db/
+
+# Any local notebooks or scratch files
+*.ipynb
+scratch/
+tmp/
