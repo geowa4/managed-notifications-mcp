@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import chromadb
+from chromadb.api.models.Collection import Collection
 from fastmcp import FastMCP
 from sentence_transformers import SentenceTransformer
 
@@ -16,8 +17,8 @@ class NotificationSearchServer:
         """Initialize the search server with ChromaDB and embedding model."""
         self.db_path = db_path
         self.model = SentenceTransformer(model_name)
-        self.client = None
-        self.collection = None
+        self.client: chromadb.ClientAPI
+        self.collection: Collection
         self._initialize_database()
     
     def _initialize_database(self) -> None:
@@ -58,34 +59,47 @@ class NotificationSearchServer:
             n_results=max_results
         )
         
+        # Check if results exist and have data
+        if not results or not results.get('ids') or not results['ids'][0]:
+            return []
+        
         # Format results
         formatted_results = []
-        for i in range(len(results['ids'][0])):
+        ids = results['ids'][0]
+        metadatas = results['metadatas'][0] if results.get('metadatas') and results['metadatas'] else []
+        distances = results['distances'][0] if results.get('distances') and results['distances'] else []
+        documents = results['documents'][0] if results.get('documents') and results['documents'] else []
+        
+        for i in range(len(ids)):
+            # Get metadata for this result
+            metadata = metadatas[i] if i < len(metadatas) else {}
+            
             # Parse the full JSON from metadata
             try:
-                full_json = json.loads(results['metadatas'][0][i]['full_json'])
-            except (json.JSONDecodeError, KeyError):
+                full_json_str = metadata.get('full_json', '{}')
+                full_json = json.loads(str(full_json_str)) if full_json_str else {}
+            except (json.JSONDecodeError, TypeError):
                 full_json = {}
             
             # Parse variables from JSON string back to list
-            variables_str = results['metadatas'][0][i].get('variables', '[]')
+            variables_str = metadata.get('variables', '[]')
             try:
-                variables = json.loads(variables_str) if variables_str else []
+                variables = json.loads(str(variables_str)) if variables_str else []
             except (json.JSONDecodeError, TypeError):
                 variables = []
             
             result = {
-                "id": results['ids'][0][i],
-                "distance": results['distances'][0][i] if 'distances' in results else 0.0,
-                "similarity": 1 - (results['distances'][0][i] if 'distances' in results else 0.0),
-                "file_path": results['metadatas'][0][i].get('file_path', ''),
-                "folder": results['metadatas'][0][i].get('folder', ''),
-                "severity": results['metadatas'][0][i].get('severity', 'Unknown'),
-                "service_name": results['metadatas'][0][i].get('service_name', 'Unknown'),
-                "log_type": results['metadatas'][0][i].get('log_type', 'Unknown'),
-                "internal_only": results['metadatas'][0][i].get('internal_only', False),
+                "id": ids[i],
+                "distance": distances[i] if i < len(distances) else 0.0,
+                "similarity": 1 - (distances[i] if i < len(distances) else 0.0),
+                "file_path": str(metadata.get('file_path', '')),
+                "folder": str(metadata.get('folder', '')),
+                "severity": str(metadata.get('severity', 'Unknown')),
+                "service_name": str(metadata.get('service_name', 'Unknown')),
+                "log_type": str(metadata.get('log_type', 'Unknown')),
+                "internal_only": bool(metadata.get('internal_only', False)),
                 "variables": variables,
-                "document_text": results['documents'][0][i],
+                "document_text": documents[i] if i < len(documents) else '',
                 "notification": full_json
             }
             
@@ -185,10 +199,12 @@ def get_database_stats() -> Dict[str, Any]:
         severities = set()
         service_names = set()
         
-        for metadata in all_results['metadatas']:
-            folders.add(metadata.get('folder', 'unknown'))
-            severities.add(metadata.get('severity', 'unknown'))
-            service_names.add(metadata.get('service_name', 'unknown'))
+        metadatas = all_results.get('metadatas', [])
+        if metadatas:
+            for metadata in metadatas:
+                folders.add(str(metadata.get('folder', 'unknown')))
+                severities.add(str(metadata.get('severity', 'unknown')))
+                service_names.add(str(metadata.get('service_name', 'unknown')))
         
         return {
             "total_notifications": collection_count,

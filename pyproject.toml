@@ -10,3 +10,11 @@ dependencies = [
     "chromadb",
 ]
 
+[dependency-groups]
+dev = [
+    "mypy>=1.17.1",
+    "python-lsp-server>=1.13.1",
+    "ruff>=0.13.0",
+    "watchdog>=6.0.0",
+]
+

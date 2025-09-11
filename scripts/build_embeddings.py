@@ -4,7 +4,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union, Mapping
 
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -50,10 +50,10 @@ def get_folder_metadata(file_path: Path, base_path: Path) -> str:
     return "root"
 
 
-def process_notification_files(notifications_dir: Path) -> tuple[list[str], list[Dict[str, Any]], list[str]]:
+def process_notification_files(notifications_dir: Path) -> tuple[list[str], list[Mapping[str, Union[str, int, float, bool, None]]], list[str]]:
     """Process all JSON notification files and extract data for embeddings."""
     documents = []
-    metadatas = []
+    metadatas: list[Mapping[str, Union[str, int, float, bool, None]]] = []
     ids = []
     
     json_files = list(notifications_dir.rglob("*.json"))
