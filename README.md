@@ -1,16 +1,24 @@
 # Managed Notifications Search MCP Server
 
-An MCP (Model Context Protocol) server that enables AI agents to search through OpenShift service notification logs using semantic search powered by ChromaDB and sentence transformers.
+An MCP (Model Context Protocol) server that enables AI agents to search through
+OpenShift service notification logs using semantic search powered by ChromaDB and
+sentence transformers.
 
 ## Overview
 
-This server provides semantic search capabilities over OpenShift service notification JSON files, allowing AI agents to find relevant notifications based on problem descriptions. The system uses vector embeddings to enable semantic matching rather than just keyword search.
+This server provides semantic search capabilities over OpenShift service
+notification JSON files, allowing AI agents to find relevant notifications based
+on problem descriptions. The system uses vector embeddings to enable semantic
+matching rather than just keyword search.
 
 ## Features
 
-- **Semantic Search**: Find notifications based on problem descriptions using vector similarity
-- **Metadata Enrichment**: Results include folder categories (hcp, osd, rosa, etc.), severity levels, and full notification data
-- **Efficient Container Deployment**: Multi-stage Docker build with optimized layering for embedding regeneration
+- **Semantic Search**: Find notifications based on problem descriptions using
+  vector similarity
+- **Metadata Enrichment**: Results include folder categories (hcp, osd, rosa,
+  etc.), severity levels, and full notification data
+- **Efficient Container Deployment**: Multi-stage Docker build with optimized
+  layering for embedding regeneration
 - **Database Statistics**: Get insights into available notifications and categories
 
 ## Installation
@@ -25,6 +33,7 @@ This server provides semantic search capabilities over OpenShift service notific
 ### Local Development
 
 1. **Clone and setup the repository:**
+
    ```bash
    git clone <repository-url>
    cd managed-notifications-mcp
@@ -32,16 +41,19 @@ This server provides semantic search capabilities over OpenShift service notific
    ```
 
 2. **Install dependencies:**
+
    ```bash
    uv sync
    ```
 
 3. **Build the embeddings database:**
+
    ```bash
    uv run build-embeddings
    ```
 
 4. **Run the MCP server:**
+
    ```bash
    uv run serve
    ```
@@ -49,11 +61,13 @@ This server provides semantic search capabilities over OpenShift service notific
 ### Container Deployment
 
 1. **Build the container:**
+
    ```bash
    podman build -t managed-notifications-search .
    ```
 
 2. **Run the container:**
+
    ```bash
    podman run -p 8000:8000 managed-notifications-search
    ```
@@ -63,6 +77,7 @@ This server provides semantic search capabilities over OpenShift service notific
 To connect to the server from an MCP client, use the provided configuration file:
 
 **File: `mcp-config.json`**
+
 ```json
 {
   "mcpServers": {
@@ -75,7 +90,8 @@ To connect to the server from an MCP client, use the provided configuration file
 }
 ```
 
-This configuration enables MCP clients (like Claude Desktop) to connect to the running server on localhost port 8000.
+This configuration enables MCP clients (like Claude Desktop) to connect to the
+running server on localhost port 8000.
 
 ## Usage
 
@@ -86,10 +102,12 @@ The server provides two main MCP tools:
 Search for notifications matching a problem statement.
 
 **Parameters:**
+
 - `problem_statement` (required): Description of the issue to search for
 - `max_results` (optional, default: 5): Maximum number of results to return
 
 **Example:**
+
 ```python
 # Search for pod scheduling issues
 results = search_service_logs(
@@ -99,13 +117,16 @@ results = search_service_logs(
 ```
 
 **Important Note on Variable Interpolation:**
-Many service notifications contain variable placeholders like `${TIME}`, `${REASON}`, `${POD}`, `${NAMESPACE}` that need to be replaced with actual values. When using this tool:
+Many service notifications contain variable placeholders like `${TIME}`,
+`${REASON}`, `${POD}`, `${NAMESPACE}` that need to be replaced with actual values.
+When using this tool:
 
 1. **Check the `variables` field** in each result to see what variables need interpolation
 2. **Ask users for specific values** for each variable when presenting a notification
 3. **Help interpolate variables** into the notification text before sending to customers
 
 Common variables include:
+
 - `${TIME}`: Timestamp when the issue occurred
 - `${REASON}`: Specific reason for the failure  
 - `${POD}`: Name of the affected pod
@@ -118,6 +139,7 @@ Common variables include:
 Get statistics about the notification database.
 
 **Returns:**
+
 - Total number of notifications
 - Available folder categories
 - Severity levels
@@ -146,8 +168,10 @@ Get statistics about the notification database.
 
 ### Data Flow
 
-1. **Build Phase**: JSON files � Text extraction � Vector embeddings � ChromaDB
-2. **Runtime Phase**: Problem statement � Query embedding � Similarity search � Formatted results
+1. **Build Phase**: JSON files � Text extraction � Vector embeddings �
+   ChromaDB
+2. **Runtime Phase**: Problem statement � Query embedding � Similarity search
+   � Formatted results
 
 ## Notification Categories
 
@@ -163,7 +187,7 @@ The system organizes notifications by folder structure:
 
 ### Project Structure
 
-```
+```text
 ├── main.py                    # MCP server implementation
 ├── scripts/
 │   └── build_embeddings.py   # Embedding creation script
@@ -175,15 +199,20 @@ The system organizes notifications by folder structure:
 
 ### Embedding Model
 
-The system uses the `all-MiniLM-L6-v2` sentence transformer model by default. You can override this by setting the `EMBEDDING_MODEL` environment variable in the embedding script.
+The system uses the `all-MiniLM-L6-v2` sentence transformer model by default.
+You can override this by setting the `EMBEDDING_MODEL` environment variable in
+the embedding script.
 
 ### Database Structure
 
 Each notification is stored with:
+
 - **Document**: Concatenated searchable text (summary, description, tags, etc.)
-- **Metadata**: File path, folder category, severity, service name, variables list, full JSON
+- **Metadata**: File path, folder category, severity, service name, variables
+  list, full JSON
 - **Embedding**: 384-dimensional vector (for default model)
-- **Variables**: Extracted variable placeholders (e.g., `["TIME", "REASON", "POD"]`) for interpolation
+- **Variables**: Extracted variable placeholders (e.g.,
+  `["TIME", "REASON", "POD"]`) for interpolation
 
 ## Contributing
 
